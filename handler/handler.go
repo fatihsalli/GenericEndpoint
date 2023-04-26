@@ -20,7 +20,7 @@ func NewOrderHandler(e *echo.Echo, mongoCollection *mongo.Collection) *OrderHand
 	h := &OrderHandler{OrderCollection: mongoCollection}
 
 	//Routes
-	router.GET("", h.GetOrders)
+	router.POST("/get", h.GetOrders)
 	router.POST("", h.CreateOrder)
 
 	return h
@@ -31,10 +31,10 @@ func NewOrderHandler(e *echo.Echo, mongoCollection *mongo.Collection) *OrderHand
 // @ID get-orders
 // @Produce json
 // @Param data body models.OrderRequest true "order filter"
-// @Success 200 {array} Order
+// @Success 200 {array} models.Order
 // @Success 400
 // @Success 500
-// @Router /orders [get]
+// @Router /orders/get [post]
 func (h *OrderHandler) GetOrders(c echo.Context) error {
 	var orderRequest models.OrderRequest
 	if err := c.Bind(&orderRequest); err != nil {
@@ -68,32 +68,39 @@ func (h *OrderHandler) GetOrders(c echo.Context) error {
 // @Summary add a new item to the order list
 // @ID create-order
 // @Produce json
-// @Param data body Order true "order data"
+// @Param data body models.OrderCreateRequest true "order data"
 // @Success 201
 // @Success 400
 // @Success 500
 // @Router /orders [post]
 func (h *OrderHandler) CreateOrder(c echo.Context) error {
-	var orderCreate models.Order
+	var orderCreateRequest models.OrderCreateRequest
 
-	if err := c.Bind(&orderCreate); err != nil {
+	if err := c.Bind(&orderCreateRequest); err != nil {
 		c.Logger().Errorf("Bad Request. It cannot be binding! %v", err.Error())
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	orderCreate.ID = uuid.New().String()
-	orderCreate.CreatedAt = time.Now()
-	orderCreate.UpdatedAt = orderCreate.CreatedAt
+	var orderModel models.Order
+
+	orderModel.ID = uuid.New().String()
+	orderModel.UserID = orderCreateRequest.UserID
+	orderModel.Status = orderCreateRequest.Status
+	orderModel.City = orderCreateRequest.City
+	orderModel.AddressDetail = orderCreateRequest.AddressDetail
+	orderModel.Product = orderCreateRequest.Product
+	orderModel.CreatedAt = time.Now()
+	orderModel.UpdatedAt = orderModel.CreatedAt
 
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
 
-	result, err := h.OrderCollection.InsertOne(ctx, orderCreate)
+	result, err := h.OrderCollection.InsertOne(ctx, orderModel)
 
 	if result.InsertedID == nil || err != nil {
 		c.Logger().Errorf("Bad Request. Something went wrong", err.Error())
 		return c.JSON(http.StatusInternalServerError, err.Error())
 	}
 
-	return c.JSON(http.StatusOK, orderCreate.ID)
+	return c.JSON(http.StatusOK, orderModel.ID)
 }
