@@ -1,7 +1,9 @@
 package main
 
 import (
+	"GenericEndpoint/configs"
 	"GenericEndpoint/docs"
+	"GenericEndpoint/handler"
 	"github.com/labstack/echo/v4"
 	"github.com/swaggo/echo-swagger"
 )
@@ -22,6 +24,10 @@ import (
 // @BasePath  /api
 func main() {
 	e := echo.New()
+
+	mongoCollection := configs.ConnectDB("mongodb://localhost:27017").Database("OrderDB").Collection("Orders")
+
+	handler.NewOrderHandler(e, mongoCollection)
 
 	docs.SwaggerInfo.Host = "localhost:8010"
 	e.GET("/swagger/*any", echoSwagger.WrapHandler)
