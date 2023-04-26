@@ -18,3 +18,7 @@ type Order struct {
 	CreatedDate   time.Time
 	UpdatedDate   time.Time
 }
+
+type OrderRequest struct {
+	exactFilters map[string]string
+}

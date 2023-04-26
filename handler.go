@@ -18,14 +18,26 @@ func NewOrderHandler(e *echo.Echo, mongoCollection *mongo.Collection) *OrderHand
 	h := &OrderHandler{OrderCollection: mongoCollection}
 
 	//Routes
-	router.GET("", h.GetOrders)
+	router.POST("", h.GetOrders)
 
 	return h
 }
 
+// GetOrders godoc
+// @Summary get order list with filter
+// @ID get-orders
+// @Produce json
+// @Param data body OrderRequest true "order filter"
+// @Success 200 {array} Order
+// @Success 400
+// @Success 500
+// @Router /orders [post]
 func (h *OrderHandler) GetOrders(c echo.Context) error {
-	var order Order
-	var orders []Order
+	var orderRequest OrderRequest
+	if err := c.Bind(&orderRequest); err != nil {
+		c.Logger().Errorf("Bad Request. It cannot be binding: %v", err.Error())
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
 	defer cancel()
@@ -35,6 +47,9 @@ func (h *OrderHandler) GetOrders(c echo.Context) error {
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, err)
 	}
+
+	var order Order
+	var orders []Order
 
 	for result.Next(ctx) {
 		if err := result.Decode(&order); err != nil {
