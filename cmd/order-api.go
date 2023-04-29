@@ -1,11 +1,11 @@
 package cmd
 
 import (
-	order_api "GenericEndpoint/internal/apps/order-api"
+	"GenericEndpoint/internal/apps/order-api"
 	"GenericEndpoint/internal/apps/order-api/handler"
 	"GenericEndpoint/internal/configs"
 	"GenericEndpoint/internal/repository"
-	pkg "GenericEndpoint/package"
+	"GenericEndpoint/pkg"
 	"github.com/labstack/echo/v4"
 	"net/http"
 	"time"
