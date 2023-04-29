@@ -3,6 +3,8 @@ package handler
 import (
 	"GenericEndpoint/internal/apps/order-api"
 	"GenericEndpoint/internal/models"
+	"GenericEndpoint/pkg"
+	"fmt"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
@@ -28,17 +30,27 @@ func NewHandler(e *echo.Echo, service *order_api.Service) *Handler {
 // @Summary get all order list
 // @ID get-all
 // @Produce json
-// @Success 200 {array} models.Order
-// @Success 500
+// @Success 200 {object} models.JSONSuccessResultData
+// @Success 500 {object} pkg.InternalServerError
 // @Router /orders [get]
 func (h *Handler) GetAll(c echo.Context) error {
 	orderList, err := h.Service.GetAll()
 
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err.Error())
+		c.Logger().Errorf("StatusInternalServerError: %v", err)
+		return c.JSON(http.StatusInternalServerError, pkg.InternalServerError{
+			Message: "Something went wrong!",
+		})
 	}
 
-	return c.JSON(http.StatusOK, orderList)
+	// Response success result data
+	jsonSuccessResultData := models.JSONSuccessResultData{
+		TotalItemCount: len(orderList),
+		Data:           orderList,
+	}
+
+	c.Logger().Info("All orders are successfully listed.")
+	return c.JSON(http.StatusOK, jsonSuccessResultData)
 }
 
 // GenericEndpoint godoc
@@ -46,30 +58,45 @@ func (h *Handler) GetAll(c echo.Context) error {
 // @ID get-orders-with-filter
 // @Produce json
 // @Param data body order_api.OrderGetRequest true "order filter data"
-// @Success 200 {array} models.Order
-// @Success 400
-// @Success 404
+// @Success 200 {object} models.JSONSuccessResultData
+// @Success 400 {object} pkg.BadRequestError
+// @Success 404 {object} pkg.NotFoundError
 // @Router /orders/getOrders [post]
 func (h *Handler) GenericEndpoint(c echo.Context) error {
 	var orderGetRequest order_api.OrderGetRequest
 
 	if err := c.Bind(&orderGetRequest); err != nil {
 		c.Logger().Errorf("Bad Request. It cannot be binding! %v", err.Error())
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return c.JSON(http.StatusBadRequest, pkg.BadRequestError{
+			Message: fmt.Sprintf("Bad Request. It cannot be binding! %v", err.Error()),
+		})
 	}
 
 	filter, findOptions, err := h.Service.FromModelConvertToFilter(orderGetRequest)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		c.Logger().Errorf("Bad Request. %v", err.Error())
+		return c.JSON(http.StatusBadRequest, pkg.BadRequestError{
+			Message: fmt.Sprintf("Bad Request. %v", err.Error()),
+		})
 	}
 
 	orderList, err := h.Service.GetOrdersWithFilter(filter, findOptions)
 
 	if err != nil {
-		return c.JSON(http.StatusNotFound, err.Error())
+		c.Logger().Errorf("NotFoundError. %v", err.Error())
+		return c.JSON(http.StatusNotFound, pkg.NotFoundError{
+			Message: fmt.Sprintf("NotFoundError. %v", err.Error()),
+		})
 	}
 
-	return c.JSON(http.StatusOK, orderList)
+	// Response success result data
+	jsonSuccessResultData := models.JSONSuccessResultData{
+		TotalItemCount: len(orderList),
+		Data:           orderList,
+	}
+
+	c.Logger().Info("Orders are successfully listed.")
+	return c.JSON(http.StatusOK, jsonSuccessResultData)
 }
 
 // CreateOrder godoc
@@ -77,16 +104,18 @@ func (h *Handler) GenericEndpoint(c echo.Context) error {
 // @ID create-order
 // @Produce json
 // @Param data body order_api.OrderCreateRequest true "order data"
-// @Success 201
-// @Success 400
-// @Success 500
+// @Success 201 {object} models.JSONSuccessResultId
+// @Success 400 {object} pkg.BadRequestError
+// @Success 500 {object} pkg.InternalServerError
 // @Router /orders [post]
 func (h *Handler) CreateOrder(c echo.Context) error {
 	var orderCreateRequest order_api.OrderCreateRequest
 
 	if err := c.Bind(&orderCreateRequest); err != nil {
 		c.Logger().Errorf("Bad Request. It cannot be binding! %v", err.Error())
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return c.JSON(http.StatusBadRequest, pkg.BadRequestError{
+			Message: fmt.Sprintf("Bad Request. It cannot be binding! %v", err.Error()),
+		})
 	}
 
 	var orderModel models.Order
@@ -100,10 +129,20 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 	result, err := h.Service.Insert(orderModel)
 
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, err.Error())
+		c.Logger().Errorf("StatusInternalServerError: %v", err)
+		return c.JSON(http.StatusInternalServerError, pkg.InternalServerError{
+			Message: "Something went wrong!",
+		})
 	}
 
-	return c.JSON(http.StatusOK, result.ID)
+	// To response id and success boolean
+	jsonSuccessResultId := models.JSONSuccessResultId{
+		ID:      result.ID,
+		Success: true,
+	}
+
+	c.Logger().Infof("{%v} with id is created.", jsonSuccessResultId.ID)
+	return c.JSON(http.StatusCreated, jsonSuccessResultId)
 }
 
 // DeleteOrder godoc
@@ -111,8 +150,8 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 // @ID delete-order-by-id
 // @Produce json
 // @Param id path string true "order ID"
-// @Success 200
-// @Success 404
+// @Success 200 {object} models.JSONSuccessResultId
+// @Success 404 {object} pkg.NotFoundError
 // @Router /orders/{id} [delete]
 func (h *Handler) DeleteOrder(c echo.Context) error {
 	query := c.Param("id")
@@ -120,9 +159,18 @@ func (h *Handler) DeleteOrder(c echo.Context) error {
 	result, err := h.Service.Delete(query)
 
 	if err != nil || result == false {
-		c.Logger().Errorf("Not found exception: {%v} with id not found!", query)
-		return c.JSON(http.StatusNotFound, err.Error())
+		c.Logger().Errorf("NotFoundError. %v", err.Error())
+		return c.JSON(http.StatusNotFound, pkg.NotFoundError{
+			Message: fmt.Sprintf("NotFoundError. %v", err.Error()),
+		})
 	}
 
-	return c.JSON(http.StatusOK, query)
+	// To response id and success boolean
+	jsonSuccessResultId := models.JSONSuccessResultId{
+		ID:      query,
+		Success: true,
+	}
+
+	c.Logger().Infof("{%v} with id is deleted.", jsonSuccessResultId.ID)
+	return c.JSON(http.StatusCreated, jsonSuccessResultId)
 }
