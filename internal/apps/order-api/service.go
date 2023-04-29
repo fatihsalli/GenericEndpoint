@@ -4,6 +4,7 @@ import (
 	"GenericEndpoint/internal/models"
 	"GenericEndpoint/internal/repository"
 	"github.com/google/uuid"
+	"go.mongodb.org/mongo-driver/bson"
 	"time"
 )
 
@@ -26,6 +27,16 @@ func (s *Service) GetAll() ([]models.Order, error) {
 	return result, nil
 }
 
+func (s *Service) GetOrdersWithFilter(filter bson.M) ([]models.Order, error) {
+	result, err := s.Repository.GetOrdersWithFilter(filter)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
 func (s *Service) Insert(order models.Order) (models.Order, error) {
 	// Create id and created date value
 	order.ID = uuid.New().String()
@@ -39,7 +50,7 @@ func (s *Service) Insert(order models.Order) (models.Order, error) {
 		order.Total += total
 	}
 
-	_, err := s.Repository.CreateOrder(order)
+	_, err := s.Repository.Insert(order)
 
 	if err != nil {
 		return models.Order{}, err
