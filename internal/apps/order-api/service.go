@@ -5,6 +5,7 @@ import (
 	"GenericEndpoint/internal/repository"
 	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
 )
 
@@ -27,8 +28,8 @@ func (s *Service) GetAll() ([]models.Order, error) {
 	return result, nil
 }
 
-func (s *Service) GetOrdersWithFilter(filter bson.M) ([]models.Order, error) {
-	result, err := s.Repository.GetOrdersWithFilter(filter)
+func (s *Service) GetOrdersWithFilter(filter bson.M, findOptions *options.FindOptions) ([]models.Order, error) {
+	result, err := s.Repository.GetOrdersWithFilter(filter, findOptions)
 
 	if err != nil {
 		return nil, err
@@ -57,4 +58,36 @@ func (s *Service) Insert(order models.Order) (models.Order, error) {
 	}
 
 	return order, nil
+}
+
+func (s *Service) FromModelConvertToFilter(req OrderGetRequest) (bson.M, *options.FindOptions, error) {
+
+	// create a filter based on the exact filters provided in the request
+	filter := bson.M{}
+	if len(req.ExactFilters) > 0 {
+		for key, value := range req.ExactFilters {
+			filter[key] = value
+		}
+	}
+
+	// create options for the find operation, including the requested fields and sort order
+	findOptions := options.Find()
+
+	if len(req.Fields) > 0 {
+		projection := bson.M{}
+		findOptions.SetProjection(projection)
+		for _, field := range req.Fields {
+			projection[field] = 1
+		}
+	}
+
+	if len(req.Sort) > 0 {
+		sort := bson.M{}
+		for key, value := range req.Sort {
+			sort[key] = value
+		}
+		findOptions.SetSort(sort)
+	}
+
+	return filter, findOptions, nil
 }

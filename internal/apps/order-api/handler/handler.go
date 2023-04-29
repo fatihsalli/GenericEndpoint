@@ -4,7 +4,6 @@ import (
 	"GenericEndpoint/internal/apps/order-api"
 	"GenericEndpoint/internal/models"
 	"github.com/labstack/echo/v4"
-	"go.mongodb.org/mongo-driver/bson"
 	"net/http"
 )
 
@@ -45,7 +44,7 @@ func (h *Handler) GetAll(c echo.Context) error {
 // @Summary get orders list with filter
 // @ID get-orders-with-filter
 // @Produce json
-// @Param data body order_api.OrderGetRequest true "order data"
+// @Param data body order_api.OrderGetRequest true "order filter data"
 // @Success 200 {array} models.Order
 // @Success 400
 // @Success 404
@@ -58,10 +57,12 @@ func (h *Handler) GetOrdersWithFilter(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, err.Error())
 	}
 
-	// TODO:Yardımcı metot modeli göndereceğiz bana filter oluşturacak
-	filter := bson.M{"_id": "12345"}
+	filter, findOptions, err := h.Service.FromModelConvertToFilter(orderGetRequest)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, err.Error())
+	}
 
-	orderList, err := h.Service.GetOrdersWithFilter(filter)
+	orderList, err := h.Service.GetOrdersWithFilter(filter, findOptions)
 
 	if err != nil {
 		return c.JSON(http.StatusNotFound, err.Error())

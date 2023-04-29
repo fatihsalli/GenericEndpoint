@@ -6,6 +6,7 @@ import (
 	"errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"time"
 )
 
@@ -44,7 +45,7 @@ func (r *Repository) GetAll() ([]models.Order, error) {
 	return orders, nil
 }
 
-func (r *Repository) GetOrdersWithFilter(filter bson.M) ([]models.Order, error) {
+func (r *Repository) GetOrdersWithFilter(filter bson.M, findOptions *options.FindOptions) ([]models.Order, error) {
 	var order models.Order
 	var orders []models.Order
 
@@ -53,7 +54,7 @@ func (r *Repository) GetOrdersWithFilter(filter bson.M) ([]models.Order, error) 
 	defer cancel()
 
 	//We can think of "Cursor" like a request. We pull the data from the database with the "Next" command. (C# => IQueryable)
-	result, err := r.Collection.Find(ctx, filter)
+	result, err := r.Collection.Find(ctx, filter, findOptions)
 
 	if err != nil {
 		return nil, err

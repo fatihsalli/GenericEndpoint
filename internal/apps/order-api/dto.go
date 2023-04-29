@@ -14,4 +14,7 @@ type OrderCreateRequest struct {
 
 type OrderGetRequest struct {
 	ExactFilters map[string]string
+	Fields       []string
+	Match        map[string]string
+	Sort         map[string]string
 }
