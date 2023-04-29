@@ -18,6 +18,7 @@ func NewHandler(e *echo.Echo, service *order_api.Service) *Handler {
 
 	//Routes
 	router.GET("", h.GetAll)
+	router.POST("/filter", h.GetOrdersWithFilter)
 	router.POST("", h.CreateOrder)
 
 	return h
@@ -47,7 +48,7 @@ func (h *Handler) GetAll(c echo.Context) error {
 // @Success 200 {array} models.Order
 // @Success 400
 // @Success 404
-// @Router /orders [get]
+// @Router /orders/filter [post]
 func (h *Handler) GetOrdersWithFilter(c echo.Context) error {
 	var orderGetRequest order_api.OrderGetRequest
 
