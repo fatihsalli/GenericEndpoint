@@ -18,7 +18,7 @@ func NewHandler(e *echo.Echo, service *order_api.Service) *Handler {
 
 	//Routes
 	router.GET("", h.GetAll)
-	router.POST("/filter", h.GetOrdersWithFilter)
+	router.POST("/getOrders", h.GetOrdersWithFilter)
 	router.POST("", h.CreateOrder)
 
 	return h
@@ -45,10 +45,11 @@ func (h *Handler) GetAll(c echo.Context) error {
 // @Summary get orders list with filter
 // @ID get-orders-with-filter
 // @Produce json
+// @Param data body order_api.OrderGetRequest true "order data"
 // @Success 200 {array} models.Order
 // @Success 400
 // @Success 404
-// @Router /orders/filter [post]
+// @Router /orders/getOrders [post]
 func (h *Handler) GetOrdersWithFilter(c echo.Context) error {
 	var orderGetRequest order_api.OrderGetRequest
 
@@ -73,7 +74,7 @@ func (h *Handler) GetOrdersWithFilter(c echo.Context) error {
 // @Summary add a new item to the order list
 // @ID create-order
 // @Produce json
-// @Param data body models.OrderCreateRequest true "order data"
+// @Param data body order_api.OrderCreateRequest true "order data"
 // @Success 201
 // @Success 400
 // @Success 500
