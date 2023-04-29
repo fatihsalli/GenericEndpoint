@@ -28,7 +28,7 @@ func (s *Service) GetAll() ([]models.Order, error) {
 	return result, nil
 }
 
-func (s *Service) GetOrdersWithFilter(filter bson.M, findOptions *options.FindOptions) ([]models.Order, error) {
+func (s *Service) GetOrdersWithFilter(filter bson.M, findOptions *options.FindOptions) ([]interface{}, error) {
 	result, err := s.Repository.GetOrdersWithFilter(filter, findOptions)
 
 	if err != nil {
@@ -58,6 +58,16 @@ func (s *Service) Insert(order models.Order) (models.Order, error) {
 	}
 
 	return order, nil
+}
+
+func (s *Service) Delete(id string) (bool, error) {
+	result, err := s.Repository.Delete(id)
+
+	if err != nil {
+		return false, err
+	}
+
+	return result, nil
 }
 
 func (s *Service) FromModelConvertToFilter(req OrderGetRequest) (bson.M, *options.FindOptions, error) {

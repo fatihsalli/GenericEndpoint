@@ -17,8 +17,9 @@ func NewHandler(e *echo.Echo, service *order_api.Service) *Handler {
 
 	//Routes
 	router.GET("", h.GetAll)
-	router.POST("/getOrders", h.GetOrdersWithFilter)
 	router.POST("", h.CreateOrder)
+	router.POST("/GenericEndpoint", h.GenericEndpoint)
+	router.DELETE("/:id", h.DeleteOrder)
 
 	return h
 }
@@ -40,7 +41,7 @@ func (h *Handler) GetAll(c echo.Context) error {
 	return c.JSON(http.StatusOK, orderList)
 }
 
-// GetOrdersWithFilter godoc
+// GenericEndpoint godoc
 // @Summary get orders list with filter
 // @ID get-orders-with-filter
 // @Produce json
@@ -49,7 +50,7 @@ func (h *Handler) GetAll(c echo.Context) error {
 // @Success 400
 // @Success 404
 // @Router /orders/getOrders [post]
-func (h *Handler) GetOrdersWithFilter(c echo.Context) error {
+func (h *Handler) GenericEndpoint(c echo.Context) error {
 	var orderGetRequest order_api.OrderGetRequest
 
 	if err := c.Bind(&orderGetRequest); err != nil {
@@ -103,4 +104,25 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, result.ID)
+}
+
+// DeleteOrder godoc
+// @Summary delete an order item by ID
+// @ID delete-order-by-id
+// @Produce json
+// @Param id path string true "order ID"
+// @Success 200
+// @Success 404
+// @Router /orders/{id} [delete]
+func (h *Handler) DeleteOrder(c echo.Context) error {
+	query := c.Param("id")
+
+	result, err := h.Service.Delete(query)
+
+	if err != nil || result == false {
+		c.Logger().Errorf("Not found exception: {%v} with id not found!", query)
+		return c.JSON(http.StatusNotFound, err.Error())
+	}
+
+	return c.JSON(http.StatusOK, query)
 }

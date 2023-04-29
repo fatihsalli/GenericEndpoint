@@ -45,9 +45,9 @@ func (r *Repository) GetAll() ([]models.Order, error) {
 	return orders, nil
 }
 
-func (r *Repository) GetOrdersWithFilter(filter bson.M, findOptions *options.FindOptions) ([]models.Order, error) {
-	var order models.Order
-	var orders []models.Order
+func (r *Repository) GetOrdersWithFilter(filter bson.M, findOptions *options.FindOptions) ([]interface{}, error) {
+	var order interface{}
+	var orders []interface{}
 
 	// open connection
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
@@ -70,7 +70,7 @@ func (r *Repository) GetOrdersWithFilter(filter bson.M, findOptions *options.Fin
 	return orders, nil
 }
 
-// Insert method => to create new order
+// Insert method => create new order
 func (r *Repository) Insert(order models.Order) (bool, error) {
 	// open connection
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
@@ -85,6 +85,7 @@ func (r *Repository) Insert(order models.Order) (bool, error) {
 	return true, nil
 }
 
+// Delete method => delete order
 func (r *Repository) Delete(id string) (bool, error) {
 	// open connection
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
