@@ -70,17 +70,32 @@ func (s *Service) Delete(id string) (bool, error) {
 	return result, nil
 }
 
-func (s *Service) FromModelConvertToFilter(req OrderGetRequest) (bson.M, *options.FindOptions, error) {
+func (s *Service) FromModelConvertToFilter(req OrderGetRequest) (bson.M, *options.FindOptions) {
 
-	// create a filter based on the exact filters provided in the request
+	// Create a filter based on the exact filters and matches provided in the request
 	filter := bson.M{}
+
 	if len(req.ExactFilters) > 0 {
 		for key, value := range req.ExactFilters {
 			filter[key] = value
 		}
 	}
 
-	// create options for the find operation, including the requested fields and sort order
+	// Add match criteria to filter if provided
+	if len(req.Match) > 0 {
+		match := bson.M{}
+		for key, value := range req.Match {
+			match[key] = value
+		}
+		filter = bson.M{
+			"$and": []bson.M{
+				filter,
+				match,
+			},
+		}
+	}
+
+	// Create options for the find operation, including the requested fields and sort order
 	findOptions := options.Find()
 
 	if len(req.Fields) > 0 {
@@ -99,5 +114,5 @@ func (s *Service) FromModelConvertToFilter(req OrderGetRequest) (bson.M, *option
 		findOptions.SetSort(sort)
 	}
 
-	return filter, findOptions, nil
+	return filter, findOptions
 }

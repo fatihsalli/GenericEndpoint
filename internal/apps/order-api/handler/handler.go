@@ -61,7 +61,7 @@ func (h *Handler) GetAll(c echo.Context) error {
 // @Success 200 {object} models.JSONSuccessResultData
 // @Success 400 {object} pkg.BadRequestError
 // @Success 404 {object} pkg.NotFoundError
-// @Router /orders/getOrders [post]
+// @Router /orders/GenericEndpoint [post]
 func (h *Handler) GenericEndpoint(c echo.Context) error {
 	var orderGetRequest order_api.OrderGetRequest
 
@@ -72,13 +72,8 @@ func (h *Handler) GenericEndpoint(c echo.Context) error {
 		})
 	}
 
-	filter, findOptions, err := h.Service.FromModelConvertToFilter(orderGetRequest)
-	if err != nil {
-		c.Logger().Errorf("Bad Request. %v", err.Error())
-		return c.JSON(http.StatusBadRequest, pkg.BadRequestError{
-			Message: fmt.Sprintf("Bad Request. %v", err.Error()),
-		})
-	}
+	// Create filter and find options (sort,field and match)
+	filter, findOptions := h.Service.FromModelConvertToFilter(orderGetRequest)
 
 	orderList, err := h.Service.GetOrdersWithFilter(filter, findOptions)
 
