@@ -75,6 +75,7 @@ func (s *Service) FromModelConvertToFilter(req OrderGetRequest) (bson.M, *option
 	// Create a filter based on the exact filters and matches provided in the request
 	filter := bson.M{}
 
+	// Add exact filters to filter if provided
 	if len(req.ExactFilters) > 0 {
 		for key, value := range req.ExactFilters {
 			filter[key] = value

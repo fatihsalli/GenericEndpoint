@@ -72,7 +72,7 @@ func (h *Handler) GenericEndpoint(c echo.Context) error {
 		})
 	}
 
-	// Create filter and find options (sort,field and match)
+	// Create filter and find options (exact filter,sort,field and match)
 	filter, findOptions := h.Service.FromModelConvertToFilter(orderGetRequest)
 
 	orderList, err := h.Service.GetOrdersWithFilter(filter, findOptions)
