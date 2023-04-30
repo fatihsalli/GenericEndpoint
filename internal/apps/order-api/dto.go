@@ -13,7 +13,7 @@ type OrderCreateRequest struct {
 }
 
 type OrderGetRequest struct {
-	ExactFilters map[string]string      `json:"exact_filters"`
+	ExactFilters map[string]interface{} `json:"exact_filters"`
 	Fields       []string               `json:"fields"`
 	Match        map[string]interface{} `json:"match"`
 	Sort         map[string]int         `json:"sort"`
