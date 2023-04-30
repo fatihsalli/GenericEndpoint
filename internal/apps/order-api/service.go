@@ -75,7 +75,7 @@ func (s *Service) FromModelConvertToFilter(req OrderGetRequest) (bson.M, *option
 	// Create a filter based on the exact filters and matches provided in the request
 	filter := bson.M{}
 
-	// Add exact filters to filter if provided
+	// Add exact filter criteria to filter if provided
 	if len(req.ExactFilters) > 0 {
 		for key, value := range req.ExactFilters {
 			filter[key] = value
@@ -99,6 +99,7 @@ func (s *Service) FromModelConvertToFilter(req OrderGetRequest) (bson.M, *option
 	// Create options for the find operation, including the requested fields and sort order
 	findOptions := options.Find()
 
+	// Add projection criteria to find options if provided
 	if len(req.Fields) > 0 {
 		projection := bson.M{}
 		findOptions.SetProjection(projection)
@@ -107,6 +108,7 @@ func (s *Service) FromModelConvertToFilter(req OrderGetRequest) (bson.M, *option
 		}
 	}
 
+	// Add sort criteria to find options if provided
 	if len(req.Sort) > 0 {
 		sort := bson.M{}
 		for key, value := range req.Sort {

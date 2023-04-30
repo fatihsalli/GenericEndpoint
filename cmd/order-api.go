@@ -31,6 +31,9 @@ func StartOrderAPI() {
 	// Echo instance
 	e := echo.New()
 
+	// Error Middleware
+	e.Use(pkg.ErrorHandlerMiddleware)
+
 	// Get config
 	config := configs.GetConfig("test")
 
