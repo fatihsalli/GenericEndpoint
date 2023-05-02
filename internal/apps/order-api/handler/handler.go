@@ -131,6 +131,14 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 		})
 	}
 
+	// Save to elasticsearch
+	if err := h.ElasticService.SaveOrderToElasticsearch(orderModel); err != nil {
+		c.Logger().Errorf("StatusInternalServerError (Elasticsearch) : %v", err)
+		return c.JSON(http.StatusInternalServerError, pkg.InternalServerError{
+			Message: "Something went wrong with elasticsearch!",
+		})
+	}
+
 	// To response id and success boolean
 	jsonSuccessResultId := models.JSONSuccessResultId{
 		ID:      result.ID,
@@ -158,6 +166,14 @@ func (h *Handler) DeleteOrder(c echo.Context) error {
 		c.Logger().Errorf("NotFoundError. %v", err.Error())
 		return c.JSON(http.StatusNotFound, pkg.NotFoundError{
 			Message: fmt.Sprintf("NotFoundError. %v", err.Error()),
+		})
+	}
+
+	// Delete from elasticsearch
+	if err := h.ElasticService.DeleteOrderFromElasticsearch(query); err != nil {
+		c.Logger().Errorf("StatusInternalServerError (Elasticsearch) : %v", err)
+		return c.JSON(http.StatusInternalServerError, pkg.InternalServerError{
+			Message: "Something went wrong with elasticsearch!",
 		})
 	}
 
