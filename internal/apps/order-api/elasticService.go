@@ -75,3 +75,36 @@ func (e *ElasticService) SaveOrderToElasticsearch(order models.Order) error {
 
 	return nil
 }
+
+func (e *ElasticService) DeleteOrderFromElasticsearch(orderID string) error {
+	// Create request object
+	req := esapi.DeleteRequest{
+		Index:      e.Config.Elasticsearch.IndexName["Order"],
+		DocumentID: orderID,
+		Refresh:    "true",
+	}
+
+	// Execute the request
+	res, err := req.Do(context.Background(), e.ElasticClient)
+	if err != nil {
+		return err
+	}
+	defer res.Body.Close()
+
+	if res.IsError() {
+		var e map[string]interface{}
+		if err := json.NewDecoder(res.Body).Decode(&e); err != nil {
+			log.Errorf("Error parsing the response body: %s", err)
+			return err
+		} else {
+			// Print the error information.
+			log.Errorf("[%s] %s: %s",
+				res.Status(),
+				e["error"].(map[string]interface{})["type"],
+				e["error"].(map[string]interface{})["reason"],
+			)
+		}
+	}
+
+	return nil
+}
