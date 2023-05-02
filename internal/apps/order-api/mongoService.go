@@ -9,16 +9,16 @@ import (
 	"time"
 )
 
-type Service struct {
+type MongoService struct {
 	Repository *repository.Repository
 }
 
-func NewService(Repository *repository.Repository) *Service {
-	service := &Service{Repository: Repository}
+func NewService(Repository *repository.Repository) *MongoService {
+	service := &MongoService{Repository: Repository}
 	return service
 }
 
-func (s *Service) GetAll() ([]models.Order, error) {
+func (s *MongoService) GetAll() ([]models.Order, error) {
 	result, err := s.Repository.GetAll()
 
 	if err != nil {
@@ -28,7 +28,7 @@ func (s *Service) GetAll() ([]models.Order, error) {
 	return result, nil
 }
 
-func (s *Service) GetOrdersWithFilter(filter bson.M, findOptions *options.FindOptions) ([]interface{}, error) {
+func (s *MongoService) GetOrdersWithFilter(filter bson.M, findOptions *options.FindOptions) ([]interface{}, error) {
 	result, err := s.Repository.GetOrdersWithFilter(filter, findOptions)
 
 	if err != nil {
@@ -38,7 +38,7 @@ func (s *Service) GetOrdersWithFilter(filter bson.M, findOptions *options.FindOp
 	return result, nil
 }
 
-func (s *Service) Insert(order models.Order) (models.Order, error) {
+func (s *MongoService) Insert(order models.Order) (models.Order, error) {
 	// Create id and created date value
 	order.ID = uuid.New().String()
 	order.CreatedAt = time.Now()
@@ -60,7 +60,7 @@ func (s *Service) Insert(order models.Order) (models.Order, error) {
 	return order, nil
 }
 
-func (s *Service) Delete(id string) (bool, error) {
+func (s *MongoService) Delete(id string) (bool, error) {
 	result, err := s.Repository.Delete(id)
 
 	if err != nil {
@@ -70,7 +70,7 @@ func (s *Service) Delete(id string) (bool, error) {
 	return result, nil
 }
 
-func (s *Service) FromModelConvertToFilter(req OrderGetRequest) (bson.M, *options.FindOptions) {
+func (s *MongoService) FromModelConvertToFilter(req OrderGetRequest) (bson.M, *options.FindOptions) {
 
 	// Create a filter based on the exact filters and matches provided in the request
 	filter := bson.M{}

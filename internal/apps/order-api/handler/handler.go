@@ -10,13 +10,13 @@ import (
 )
 
 type Handler struct {
-	Service        *order_api.Service
+	MongoService   *order_api.MongoService
 	ElasticService *order_api.ElasticService
 }
 
-func NewHandler(e *echo.Echo, service *order_api.Service, elasticservice *order_api.ElasticService) *Handler {
+func NewHandler(e *echo.Echo, mongoService *order_api.MongoService, elasticService *order_api.ElasticService) *Handler {
 	router := e.Group("api/orders")
-	h := &Handler{Service: service, ElasticService: elasticservice}
+	h := &Handler{MongoService: mongoService, ElasticService: elasticService}
 
 	//Routes
 	router.GET("", h.GetAll)
@@ -35,7 +35,7 @@ func NewHandler(e *echo.Echo, service *order_api.Service, elasticservice *order_
 // @Success 500 {object} pkg.InternalServerError
 // @Router /orders [get]
 func (h *Handler) GetAll(c echo.Context) error {
-	orderList, err := h.Service.GetAll()
+	orderList, err := h.MongoService.GetAll()
 
 	if err != nil {
 		c.Logger().Errorf("StatusInternalServerError: %v", err)
@@ -74,9 +74,9 @@ func (h *Handler) GenericEndpoint(c echo.Context) error {
 	}
 
 	// Create filter and find options (exact filter,sort,field and match)
-	filter, findOptions := h.Service.FromModelConvertToFilter(orderGetRequest)
+	filter, findOptions := h.MongoService.FromModelConvertToFilter(orderGetRequest)
 
-	orderList, err := h.Service.GetOrdersWithFilter(filter, findOptions)
+	orderList, err := h.MongoService.GetOrdersWithFilter(filter, findOptions)
 
 	if err != nil {
 		c.Logger().Errorf("NotFoundError. %v", err.Error())
@@ -122,7 +122,7 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 	orderModel.AddressDetail = orderCreateRequest.AddressDetail
 	orderModel.Product = orderCreateRequest.Product
 
-	result, err := h.Service.Insert(orderModel)
+	result, err := h.MongoService.Insert(orderModel)
 
 	if err != nil {
 		c.Logger().Errorf("StatusInternalServerError: %v", err)
@@ -160,7 +160,7 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 func (h *Handler) DeleteOrder(c echo.Context) error {
 	query := c.Param("id")
 
-	result, err := h.Service.Delete(query)
+	result, err := h.MongoService.Delete(query)
 
 	if err != nil || result == false {
 		c.Logger().Errorf("NotFoundError. %v", err.Error())
