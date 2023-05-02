@@ -10,12 +10,13 @@ import (
 )
 
 type Handler struct {
-	Service *order_api.Service
+	Service        *order_api.Service
+	ElasticService *order_api.ElasticService
 }
 
-func NewHandler(e *echo.Echo, service *order_api.Service) *Handler {
+func NewHandler(e *echo.Echo, service *order_api.Service, elasticservice *order_api.ElasticService) *Handler {
 	router := e.Group("api/orders")
-	h := &Handler{Service: service}
+	h := &Handler{Service: service, ElasticService: elasticservice}
 
 	//Routes
 	router.GET("", h.GetAll)

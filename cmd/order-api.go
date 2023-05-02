@@ -42,8 +42,10 @@ func StartOrderAPI() {
 	OrderRepository := repository.NewRepository(mongoOrderCollection)
 	OrderService := order_api.NewService(OrderRepository)
 
+	OrderElastic := order_api.NewElasticService(&config)
+
 	// Create handler
-	handler.NewHandler(e, OrderService)
+	handler.NewHandler(e, OrderService, OrderElastic)
 
 	// if we don't use this swagger give an error
 	docs.SwaggerInfo.Host = "localhost:8011"
