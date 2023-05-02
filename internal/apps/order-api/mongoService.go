@@ -3,10 +3,8 @@ package order_api
 import (
 	"GenericEndpoint/internal/models"
 	"GenericEndpoint/internal/repository"
-	"github.com/google/uuid"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"time"
 )
 
 type MongoService struct {
@@ -39,18 +37,6 @@ func (s *MongoService) GetOrdersWithFilter(filter bson.M, findOptions *options.F
 }
 
 func (s *MongoService) Insert(order models.Order) (models.Order, error) {
-	// Create id and created date value
-	order.ID = uuid.New().String()
-	order.CreatedAt = time.Now()
-	// We don't want to set null, so we put CreatedAt value.
-	order.UpdatedAt = order.CreatedAt
-
-	var total float64
-	for _, product := range order.Product {
-		total = product.Price * float64(product.Quantity)
-		order.Total += total
-	}
-
 	_, err := s.Repository.Insert(order)
 
 	if err != nil {

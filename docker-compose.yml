@@ -7,7 +7,33 @@ services:
     ports:
       - '27017:27017'
     volumes:
-      - mongodb-data:/data/db
+      - mongodb-data-01:/data/db
+
+  elasticsearch:
+    container_name: 'elasticsearch'
+    image: 'docker.elastic.co/elasticsearch/elasticsearch:7.13.0'
+    restart: on-failure
+    environment:
+      - xpack.monitoring.enabled=true
+      - xpack.watcher.enabled=false
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - discovery.type=single-node
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch-data-01:/usr/share/elasticsearch/data
+
+  kibana:
+    container_name: 'kibana'
+    image: 'docker.elastic.co/kibana/kibana:7.13.0'
+    restart: on-failure
+    environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      ELASTICSEARCH_HOSTS: http://elasticsearch:9200
+    ports:
+      - "5601:5601"
 
 volumes:
-  mongodb-data:
+  elasticsearch-data-01:
+  mongodb-data-01:

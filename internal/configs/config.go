@@ -47,7 +47,7 @@ var Configs = map[string]Config{
 				"Address 1": "http://localhost:9200",
 			},
 			IndexName: map[string]string{
-				"Order": "order_duplicate_v01",
+				"Order": "generic_endpoint_v01",
 			},
 		},
 	},

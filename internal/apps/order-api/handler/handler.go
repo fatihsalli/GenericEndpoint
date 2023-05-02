@@ -5,8 +5,10 @@ import (
 	"GenericEndpoint/internal/models"
 	"GenericEndpoint/pkg"
 	"fmt"
+	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
 	"net/http"
+	"time"
 )
 
 type Handler struct {
@@ -121,6 +123,18 @@ func (h *Handler) CreateOrder(c echo.Context) error {
 	orderModel.City = orderCreateRequest.City
 	orderModel.AddressDetail = orderCreateRequest.AddressDetail
 	orderModel.Product = orderCreateRequest.Product
+
+	// Create id and created date value
+	orderModel.ID = uuid.New().String()
+	orderModel.CreatedAt = time.Now()
+	// We don't want to set null, so we put CreatedAt value.
+	orderModel.UpdatedAt = orderModel.CreatedAt
+
+	var total float64
+	for _, product := range orderModel.Product {
+		total = product.Price * float64(product.Quantity)
+		orderModel.Total += total
+	}
 
 	result, err := h.MongoService.Insert(orderModel)
 
