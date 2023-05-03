@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 	"github.com/labstack/gommon/log"
@@ -109,75 +110,75 @@ func (e *ElasticService) DeleteOrderFromElasticsearch(orderID string) error {
 	return nil
 }
 
-func (e *ElasticService) FromModelConvertToSearchRequest(req OrderGetRequest) (bytes.Buffer, error) {
-	// Create a buffer to hold the query
-	var buf bytes.Buffer
+func (e *ElasticService) GetFromElasticsearch(req OrderGetRequest) ([]models.Order, error) {
 
-	// Create a map to hold the query filters
-	queryFilters := make(map[string]interface{})
-
-	// Add exact filter criteria to the query filters if provided
-	if len(req.ExactFilters) > 0 {
-		for key, values := range req.ExactFilters {
-			if len(values) > 1 {
-				// If there are multiple values for the same key, we use the terms query
-				queryFilters["terms"] = map[string]interface{}{key: values}
-			} else {
-				// Otherwise, we use the term query
-				queryFilters["term"] = map[string]interface{}{key: values[0]}
-			}
-		}
+	query := map[string]interface{}{
+		"query": map[string]interface{}{
+			"bool": map[string]interface{}{
+				"should": []interface{}{
+					map[string]interface{}{
+						"match": map[string]interface{}{
+							"status": "Shipped",
+						},
+					},
+					map[string]interface{}{
+						"match": map[string]interface{}{
+							"status": "Delivered",
+						},
+					},
+				},
+			},
+		},
 	}
 
-	// Add match criteria to the query filters if provided
-	if len(req.Match) > 0 {
-		for key, value := range req.Match {
-			queryFilters["match"] = map[string]interface{}{key: value}
-		}
-	}
-
-	// Add sort criteria to the query if provided
-	if len(req.Sort) > 0 {
-		sort := make([]map[string]interface{}, 0)
-		for key, value := range req.Sort {
-			sort = append(sort, map[string]interface{}{key: map[string]interface{}{"order": value}})
-		}
-		queryFilters["sort"] = sort
-	}
-
-	// Add projection criteria to the query if provided
-	if len(req.Fields) > 0 {
-		projection := make(map[string]interface{})
-		for _, field := range req.Fields {
-			projection[field] = true
-		}
-		queryFilters["_source"] = projection
-	}
-
-	// Construct the Elasticsearch query from the query filters
-	query := map[string]interface{}{"query": map[string]interface{}{"bool": queryFilters}}
-
-	// Serialize the query to JSON and write it to the buffer
-	if err := json.NewEncoder(&buf).Encode(query); err != nil {
-		return buf, err
-	}
-
-	return buf, nil
-}
-
-func (e *ElasticService) GetFromElasticSearch(query bytes.Buffer) (*esapi.Response, error) {
-	// Create the search request
-	req := esapi.SearchRequest{
-		Index:          []string{e.Config.Elasticsearch.IndexName["Order"]},
-		Body:           bytes.NewReader(query.Bytes()),
-		TrackTotalHits: true,
-	}
-
-	// Execute the search request and return the response
-	res, err := req.Do(context.Background(), e.ElasticClient)
-	if err != nil {
+	buf := new(bytes.Buffer)
+	if err := json.NewEncoder(buf).Encode(query); err != nil {
+		fmt.Println("Error encoding the query: ", err)
 		return nil, err
 	}
 
-	return res, nil
+	res, err := e.ElasticClient.Search(
+		e.ElasticClient.Search.WithIndex(e.Config.Elasticsearch.IndexName["Order"]),
+		e.ElasticClient.Search.WithBody(buf),
+	)
+	if err != nil {
+		fmt.Println("Error executing the search: ", err)
+		return nil, err
+	}
+
+	defer res.Body.Close()
+
+	if res.IsError() {
+		fmt.Println("Error executing the decode: ", err)
+		return nil, err
+	}
+
+	var r map[string]interface{}
+	if err := json.NewDecoder(res.Body).Decode(&r); err != nil {
+		fmt.Println("Error executing the decode: ", err)
+		return nil, err
+	}
+
+	var orders []models.Order
+
+	hits := r["hits"].(map[string]interface{})["hits"].([]interface{})
+	for _, hit := range hits {
+
+		source, err := json.Marshal(hit.(map[string]interface{})["_source"])
+		if err != nil {
+			fmt.Println("Error marshalling the source: ", err)
+			return nil, err
+		}
+
+		var order models.Order
+		err = json.Unmarshal(source, &order)
+		if err != nil {
+			fmt.Println("Error unmarshalling the order: ", err)
+			return nil, err
+		}
+
+		orders = append(orders, order)
+	}
+
+	return orders, nil
 }
