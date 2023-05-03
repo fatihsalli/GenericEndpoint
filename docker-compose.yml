@@ -7,7 +7,7 @@ services:
     ports:
       - '27017:27017'
     volumes:
-      - mongodb-data-01:/data/db
+      - mongodb-data:/data/db
 
   elasticsearch:
     container_name: 'elasticsearch'
@@ -22,7 +22,7 @@ services:
     ports:
       - "9200:9200"
     volumes:
-      - elasticsearch-data-01:/usr/share/elasticsearch/data
+      - elasticsearch-data:/usr/share/elasticsearch/data
 
   kibana:
     container_name: 'kibana'
@@ -35,5 +35,5 @@ services:
       - "5601:5601"
 
 volumes:
-  elasticsearch-data-01:
-  mongodb-data-01:
+  elasticsearch-data:
+  mongodb-data:

@@ -9,6 +9,8 @@ import (
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 	"github.com/labstack/gommon/log"
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type ElasticService struct {
@@ -107,4 +109,54 @@ func (e *ElasticService) DeleteOrderFromElasticsearch(orderID string) error {
 	}
 
 	return nil
+}
+
+func (s *MongoService) FromModelConvertToSearchRequest(req OrderGetRequest) (bson.M, *options.FindOptions) {
+
+	// Create a filter based on the exact filters and matches provided in the request
+	filter := bson.M{}
+
+	// Add exact filter criteria to filter if provided
+	if len(req.ExactFilters) > 0 {
+		for key, value := range req.ExactFilters {
+			filter[key] = value
+		}
+	}
+
+	// Add match criteria to filter if provided
+	if len(req.Match) > 0 {
+		match := bson.M{}
+		for key, value := range req.Match {
+			match[key] = value
+		}
+		filter = bson.M{
+			"$and": []bson.M{
+				filter,
+				match,
+			},
+		}
+	}
+
+	// Create options for the find operation, including the requested fields and sort order
+	findOptions := options.Find()
+
+	// Add projection criteria to find options if provided
+	if len(req.Fields) > 0 {
+		projection := bson.M{}
+		findOptions.SetProjection(projection)
+		for _, field := range req.Fields {
+			projection[field] = 1
+		}
+	}
+
+	// Add sort criteria to find options if provided
+	if len(req.Sort) > 0 {
+		sort := bson.M{}
+		for key, value := range req.Sort {
+			sort[key] = value
+		}
+		findOptions.SetSort(sort)
+	}
+
+	return filter, findOptions
 }

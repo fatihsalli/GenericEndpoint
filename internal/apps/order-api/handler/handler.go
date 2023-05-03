@@ -97,6 +97,47 @@ func (h *Handler) GenericEndpoint(c echo.Context) error {
 	return c.JSON(http.StatusOK, jsonSuccessResultData)
 }
 
+// GenericEndpointElastic godoc
+// @Summary get orders list with filter
+// @ID get-orders-with-filter
+// @Produce json
+// @Param data body order_api.OrderGetRequest true "order filter data"
+// @Success 200 {object} models.JSONSuccessResultData
+// @Success 400 {object} pkg.BadRequestError
+// @Success 404 {object} pkg.NotFoundError
+// @Router /orders/GenericEndpoint [post]
+func (h *Handler) GenericEndpointElastic(c echo.Context) error {
+	var orderGetRequest order_api.OrderGetRequest
+
+	if err := c.Bind(&orderGetRequest); err != nil {
+		c.Logger().Errorf("Bad Request. It cannot be binding! %v", err.Error())
+		return c.JSON(http.StatusBadRequest, pkg.BadRequestError{
+			Message: fmt.Sprintf("Bad Request. It cannot be binding! %v", err.Error()),
+		})
+	}
+
+	// Create filter and find options (exact filter,sort,field and match)
+	filter, findOptions := h.MongoService.FromModelConvertToFilter(orderGetRequest)
+
+	orderList, err := h.MongoService.GetOrdersWithFilter(filter, findOptions)
+
+	if err != nil {
+		c.Logger().Errorf("NotFoundError. %v", err.Error())
+		return c.JSON(http.StatusNotFound, pkg.NotFoundError{
+			Message: fmt.Sprintf("NotFoundError. %v", err.Error()),
+		})
+	}
+
+	// Response success result data
+	jsonSuccessResultData := models.JSONSuccessResultData{
+		TotalItemCount: len(orderList),
+		Data:           orderList,
+	}
+
+	c.Logger().Info("Orders are successfully listed.")
+	return c.JSON(http.StatusOK, jsonSuccessResultData)
+}
+
 // CreateOrder godoc
 // @Summary add a new item to the order list
 // @ID create-order
