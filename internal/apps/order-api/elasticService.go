@@ -112,27 +112,32 @@ func (e *ElasticService) DeleteOrderFromElasticsearch(orderID string) error {
 
 func (e *ElasticService) GetFromElasticsearch(req OrderGetRequest) ([]models.Order, error) {
 
-	query := map[string]interface{}{
-		"query": map[string]interface{}{
-			"bool": map[string]interface{}{
-				"should": []interface{}{
-					map[string]interface{}{
-						"match": map[string]interface{}{
-							"status": "Shipped",
-						},
-					},
-					map[string]interface{}{
-						"match": map[string]interface{}{
-							"status": "Delivered",
-						},
-					},
-				},
-			},
-		},
+	searchBody := make(map[string]interface{})
+	query := make(map[string]interface{})
+
+	// Creating query for exact filters
+	if len(req.ExactFilters) > 0 {
+		boolQuery := make(map[string]interface{})
+		mustClauses := make([]map[string]interface{}, 0)
+
+		for field, values := range req.ExactFilters {
+			if len(values) > 0 {
+				mustClause := make(map[string]interface{})
+				mustClause["terms"] = map[string]interface{}{
+					field + ".keyword": values,
+				}
+				mustClauses = append(mustClauses, mustClause)
+			}
+		}
+
+		boolQuery["must"] = mustClauses
+		query["bool"] = boolQuery
 	}
 
+	searchBody["query"] = query
+
 	buf := new(bytes.Buffer)
-	if err := json.NewEncoder(buf).Encode(query); err != nil {
+	if err := json.NewEncoder(buf).Encode(searchBody); err != nil {
 		fmt.Println("Error encoding the query: ", err)
 		return nil, err
 	}
