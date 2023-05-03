@@ -4,6 +4,7 @@ import (
 	"GenericEndpoint/internal/apps/order-api"
 	"GenericEndpoint/internal/models"
 	"GenericEndpoint/pkg"
+	"encoding/json"
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -24,6 +25,7 @@ func NewHandler(e *echo.Echo, mongoService *order_api.MongoService, elasticServi
 	router.GET("", h.GetAll)
 	router.POST("", h.CreateOrder)
 	router.POST("/GenericEndpoint", h.GenericEndpoint)
+	router.POST("/GenericEndpointElastic", h.GenericEndpointElastic)
 	router.DELETE("/:id", h.DeleteOrder)
 
 	return h
@@ -99,13 +101,13 @@ func (h *Handler) GenericEndpoint(c echo.Context) error {
 
 // GenericEndpointElastic godoc
 // @Summary get orders list with filter
-// @ID get-orders-with-filter
+// @ID get-orders-with-filter-from-elastic
 // @Produce json
 // @Param data body order_api.OrderGetRequest true "order filter data"
 // @Success 200 {object} models.JSONSuccessResultData
 // @Success 400 {object} pkg.BadRequestError
 // @Success 404 {object} pkg.NotFoundError
-// @Router /orders/GenericEndpoint [post]
+// @Router /orders/GenericEndpointElastic [post]
 func (h *Handler) GenericEndpointElastic(c echo.Context) error {
 	var orderGetRequest order_api.OrderGetRequest
 
@@ -117,15 +119,49 @@ func (h *Handler) GenericEndpointElastic(c echo.Context) error {
 	}
 
 	// Create filter and find options (exact filter,sort,field and match)
-	filter, findOptions := h.MongoService.FromModelConvertToFilter(orderGetRequest)
+	query, err := h.ElasticService.FromModelConvertToSearchRequest(orderGetRequest)
+	if err != nil {
+		c.Logger().Errorf("InternalServerError. %v", err.Error())
+		return c.JSON(http.StatusInternalServerError, pkg.InternalServerError{
+			Message: fmt.Sprintf("InternalServerError. %v", err.Error()),
+		})
+	}
 
-	orderList, err := h.MongoService.GetOrdersWithFilter(filter, findOptions)
+	response, err := h.ElasticService.GetFromElasticSearch(query)
 
 	if err != nil {
 		c.Logger().Errorf("NotFoundError. %v", err.Error())
 		return c.JSON(http.StatusNotFound, pkg.NotFoundError{
 			Message: fmt.Sprintf("NotFoundError. %v", err.Error()),
 		})
+	}
+
+	// Elasticsearch'ten dönen JSON verilerini okuyun
+	var data map[string]interface{}
+	err = json.NewDecoder(response.Body).Decode(&data)
+	if err != nil {
+		// hata durumunda
+	}
+
+	// Elasticsearch'ten dönen verilerdeki belge listesini alın
+	docs := data["hits"].(map[string]interface{})["hits"].([]interface{})
+
+	var orderList []models.Order
+	var order models.Order
+
+	// Belge listesini dolaşarak her belgeyi işleyin
+	for _, doc := range docs {
+		// Her belgedeki "_source" alanını alın
+		source := doc.(map[string]interface{})["_source"]
+
+		// _source alanındaki JSON verisini istediğiniz modele dönüştürün
+
+		err = json.Unmarshal([]byte(source.(string)), &order)
+		if err != nil {
+			// hata durumunda
+		}
+
+		orderList = append(orderList, order)
 	}
 
 	// Response success result data

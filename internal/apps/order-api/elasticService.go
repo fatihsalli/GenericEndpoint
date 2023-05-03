@@ -9,8 +9,6 @@ import (
 	"github.com/elastic/go-elasticsearch/v7"
 	"github.com/elastic/go-elasticsearch/v7/esapi"
 	"github.com/labstack/gommon/log"
-	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type ElasticService struct {
@@ -111,52 +109,75 @@ func (e *ElasticService) DeleteOrderFromElasticsearch(orderID string) error {
 	return nil
 }
 
-func (s *MongoService) FromModelConvertToSearchRequest(req OrderGetRequest) (bson.M, *options.FindOptions) {
+func (e *ElasticService) FromModelConvertToSearchRequest(req OrderGetRequest) (bytes.Buffer, error) {
+	// Create a buffer to hold the query
+	var buf bytes.Buffer
 
-	// Create a filter based on the exact filters and matches provided in the request
-	filter := bson.M{}
+	// Create a map to hold the query filters
+	queryFilters := make(map[string]interface{})
 
-	// Add exact filter criteria to filter if provided
+	// Add exact filter criteria to the query filters if provided
 	if len(req.ExactFilters) > 0 {
-		for key, value := range req.ExactFilters {
-			filter[key] = value
+		for key, values := range req.ExactFilters {
+			if len(values) > 1 {
+				// If there are multiple values for the same key, we use the terms query
+				queryFilters["terms"] = map[string]interface{}{key: values}
+			} else {
+				// Otherwise, we use the term query
+				queryFilters["term"] = map[string]interface{}{key: values[0]}
+			}
 		}
 	}
 
-	// Add match criteria to filter if provided
+	// Add match criteria to the query filters if provided
 	if len(req.Match) > 0 {
-		match := bson.M{}
 		for key, value := range req.Match {
-			match[key] = value
-		}
-		filter = bson.M{
-			"$and": []bson.M{
-				filter,
-				match,
-			},
+			queryFilters["match"] = map[string]interface{}{key: value}
 		}
 	}
 
-	// Create options for the find operation, including the requested fields and sort order
-	findOptions := options.Find()
-
-	// Add projection criteria to find options if provided
-	if len(req.Fields) > 0 {
-		projection := bson.M{}
-		findOptions.SetProjection(projection)
-		for _, field := range req.Fields {
-			projection[field] = 1
-		}
-	}
-
-	// Add sort criteria to find options if provided
+	// Add sort criteria to the query if provided
 	if len(req.Sort) > 0 {
-		sort := bson.M{}
+		sort := make([]map[string]interface{}, 0)
 		for key, value := range req.Sort {
-			sort[key] = value
+			sort = append(sort, map[string]interface{}{key: map[string]interface{}{"order": value}})
 		}
-		findOptions.SetSort(sort)
+		queryFilters["sort"] = sort
 	}
 
-	return filter, findOptions
+	// Add projection criteria to the query if provided
+	if len(req.Fields) > 0 {
+		projection := make(map[string]interface{})
+		for _, field := range req.Fields {
+			projection[field] = true
+		}
+		queryFilters["_source"] = projection
+	}
+
+	// Construct the Elasticsearch query from the query filters
+	query := map[string]interface{}{"query": map[string]interface{}{"bool": queryFilters}}
+
+	// Serialize the query to JSON and write it to the buffer
+	if err := json.NewEncoder(&buf).Encode(query); err != nil {
+		return buf, err
+	}
+
+	return buf, nil
+}
+
+func (e *ElasticService) GetFromElasticSearch(query bytes.Buffer) (*esapi.Response, error) {
+	// Create the search request
+	req := esapi.SearchRequest{
+		Index:          []string{e.Config.Elasticsearch.IndexName["Order"]},
+		Body:           bytes.NewReader(query.Bytes()),
+		TrackTotalHits: true,
+	}
+
+	// Execute the search request and return the response
+	res, err := req.Do(context.Background(), e.ElasticClient)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
 }
