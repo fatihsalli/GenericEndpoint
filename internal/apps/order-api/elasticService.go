@@ -124,7 +124,7 @@ func (e *ElasticService) GetFromElasticsearch(req OrderGetRequest) ([]interface{
 			if len(values) > 0 {
 				mustClause := make(map[string]interface{})
 				mustClause["terms"] = map[string]interface{}{
-					field + ".keyword": values,
+					field: values,
 				}
 				mustClauses = append(mustClauses, mustClause)
 			}
@@ -159,7 +159,17 @@ func (e *ElasticService) GetFromElasticsearch(req OrderGetRequest) ([]interface{
 	searchBody["query"] = query
 
 	if len(req.Sort) > 0 {
-
+		for field, value := range req.Sort {
+			if value == -1 {
+				searchBody["sort"] = map[string]interface{}{
+					field: "desc",
+				}
+			} else if value == 1 {
+				searchBody["sort"] = map[string]interface{}{
+					field: "asc",
+				}
+			}
+		}
 	}
 
 	if len(req.Fields) > 0 {
