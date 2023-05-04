@@ -110,7 +110,7 @@ func (e *ElasticService) DeleteOrderFromElasticsearch(orderID string) error {
 	return nil
 }
 
-func (e *ElasticService) GetFromElasticsearch(req OrderGetRequest) ([]models.Order, error) {
+func (e *ElasticService) GetFromElasticsearch(req OrderGetRequest) ([]interface{}, error) {
 
 	searchBody := make(map[string]interface{})
 	query := make(map[string]interface{})
@@ -158,6 +158,14 @@ func (e *ElasticService) GetFromElasticsearch(req OrderGetRequest) ([]models.Ord
 
 	searchBody["query"] = query
 
+	if len(req.Sort) > 0 {
+
+	}
+
+	if len(req.Fields) > 0 {
+		searchBody["_source"] = req.Fields
+	}
+
 	buf := new(bytes.Buffer)
 	if err := json.NewEncoder(buf).Encode(searchBody); err != nil {
 		fmt.Println("Error encoding the query: ", err)
@@ -186,7 +194,7 @@ func (e *ElasticService) GetFromElasticsearch(req OrderGetRequest) ([]models.Ord
 		return nil, err
 	}
 
-	var orders []models.Order
+	var orders []interface{}
 
 	hits := r["hits"].(map[string]interface{})["hits"].([]interface{})
 	for _, hit := range hits {
@@ -197,7 +205,7 @@ func (e *ElasticService) GetFromElasticsearch(req OrderGetRequest) ([]models.Ord
 			return nil, err
 		}
 
-		var order models.Order
+		var order interface{}
 		err = json.Unmarshal(source, &order)
 		if err != nil {
 			fmt.Println("Error unmarshalling the order: ", err)
