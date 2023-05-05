@@ -26,7 +26,7 @@ func (s *MongoService) GetAll() ([]models.Order, error) {
 	return result, nil
 }
 
-func (s *MongoService) GetOrdersWithFilter(filter bson.M, findOptions *options.FindOptions) ([]interface{}, error) {
+func (s *MongoService) GetOrdersWithFilter(filter bson.M, findOptions *options.FindOptions) ([]models.Order, error) {
 	result, err := s.Repository.GetOrdersWithFilter(filter, findOptions)
 
 	if err != nil {

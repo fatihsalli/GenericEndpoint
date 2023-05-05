@@ -45,9 +45,9 @@ func (r *Repository) GetAll() ([]models.Order, error) {
 	return orders, nil
 }
 
-func (r *Repository) GetOrdersWithFilter(filter bson.M, findOptions *options.FindOptions) ([]interface{}, error) {
-	var order interface{}
-	var orders []interface{}
+func (r *Repository) GetOrdersWithFilter(filter bson.M, findOptions *options.FindOptions) ([]models.Order, error) {
+	var order models.Order
+	var orders []models.Order
 
 	// open connection
 	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
