@@ -134,7 +134,7 @@ func (e *ElasticService) GetFromElasticsearch(req OrderGetRequest) ([]interface{
 		query["bool"] = boolQuery
 	}
 
-	// TODO: match devam
+	// TODO: Match çalışmıyor kontrol edilecek
 	// Creating query for match
 	if len(req.Match) > 0 {
 		for field, value := range req.Match {
@@ -209,20 +209,13 @@ func (e *ElasticService) GetFromElasticsearch(req OrderGetRequest) ([]interface{
 	hits := r["hits"].(map[string]interface{})["hits"].([]interface{})
 	for _, hit := range hits {
 
-		source, err := json.Marshal(hit.(map[string]interface{})["_source"])
-		if err != nil {
-			fmt.Println("Error marshalling the source: ", err)
+		// Casting with type assertion
+		source, ok := hit.(map[string]interface{})["_source"]
+		if !ok {
+			fmt.Println("Source not found in the hit", err)
 			return nil, err
 		}
-
-		var order interface{}
-		err = json.Unmarshal(source, &order)
-		if err != nil {
-			fmt.Println("Error unmarshalling the order: ", err)
-			return nil, err
-		}
-
-		orders = append(orders, order)
+		orders = append(orders, source)
 	}
 
 	return orders, nil
