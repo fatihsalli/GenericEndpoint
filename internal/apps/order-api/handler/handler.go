@@ -78,7 +78,6 @@ func (h *Handler) GenericEndpoint(c echo.Context) error {
 
 	// Create filter and find options (exact filter,sort,field and match)
 	filter, findOptions := h.MongoService.FromModelConvertToFilter(orderGetRequest)
-
 	orderList, err := h.MongoService.GetOrdersWithFilter(filter, findOptions)
 
 	if err != nil {
@@ -88,10 +87,37 @@ func (h *Handler) GenericEndpoint(c echo.Context) error {
 		})
 	}
 
+	var orderResponse order_api.OrderResponse
+	var orderResponseList []order_api.OrderResponse
+
+	for _, order := range orderList {
+		orderResponse.ID = order.ID
+		orderResponse.UserID = order.UserID
+		orderResponse.Status = order.Status
+		orderResponse.City = order.City
+		orderResponse.AddressDetail = order.AddressDetail
+		orderResponse.Product = order.Product
+		orderResponse.Total = order.Total
+
+		if order.CreatedAt.String() == "0001-01-01 00:00:00 +0000 UTC" {
+			orderResponse.CreatedAt = ""
+		} else {
+			orderResponse.CreatedAt = order.CreatedAt.String()
+		}
+
+		if order.UpdatedAt.String() == "0001-01-01 00:00:00 +0000 UTC" {
+			orderResponse.UpdatedAt = ""
+		} else {
+			orderResponse.UpdatedAt = order.UpdatedAt.String()
+		}
+
+		orderResponseList = append(orderResponseList, orderResponse)
+	}
+
 	// Response success result data
 	jsonSuccessResultData := models.JSONSuccessResultData{
-		TotalItemCount: len(orderList),
-		Data:           orderList,
+		TotalItemCount: len(orderResponseList),
+		Data:           orderResponseList,
 	}
 
 	c.Logger().Info("Orders are successfully listed.")
